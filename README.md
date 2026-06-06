@@ -18,6 +18,12 @@ We are utilizing a **Multi-Agent Supervisor Pattern** supported by two critical 
 - **Vector Memory (RAG):** Instead of retraining, the agent will utilize a "Library" powered by a Vector Database (like Pinecone or a local store). Every project—including the brief, design files, and final video script—will be saved to this "Memory," allowing the AI to reference your past real-life work for future designs.
 - **Supervisor Agent:** Orchestrates tasks and delegates to specialized sub-agents.
 
+## 🛠 Tech Stack
+- **Framework:** [LangGraph](https://www.langchain.com/langgraph) - Chosen for its stateful multi-actor support and robust handling of cyclic creative workflows.
+- **Data Schema:** [Pydantic] - To ensure consistent output formatting.
+- **Integration:** [Model Context Protocol (MCP)] - For seamless connectivity to external tools and data sources.
+- **Memory:** [Vector DB (e.g., Pinecone)] - To store past project context and design preferences for retrieval-augmented generation[cite: 1].
+
 #  Repository Structure
 ```text
 /agents          # Definitions for specific specialized agents
@@ -26,3 +32,4 @@ We are utilizing a **Multi-Agent Supervisor Pattern** supported by two critical 
 /prompts         # System instructions and prompt templates
 /docs            # Design theory guidelines and project requirements
 main.py          # Orchestration logic
+
