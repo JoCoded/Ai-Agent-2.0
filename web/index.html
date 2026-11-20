@@ -53,11 +53,11 @@ footer{max-width:1240px;margin:0 auto;padding:15px 20px 45px;color:#798ca5;font-
 <div class="status" id="planStatus" role="status" aria-live="polite"></div>
 </section>
 <section class="panel"><h2>03 / Add brand knowledge</h2><p class="small">New references begin unapproved. Approve each reference manually before it can inform retrieval.</p>
-<form id="assetForm"><label for="assetBrand">Brand</label><input id="assetBrand" required maxlength="100" placeholder="Example Studio">
-<label for="assetId">Unique reference ID</label><input id="assetId" required pattern="[a-zA-Z0-9_-]+" maxlength="48" placeholder="example-guideline-1">
-<label for="assetTitle">Title</label><input id="assetTitle" required maxlength="150">
-<label for="assetText">Guideline or excerpt</label><textarea id="assetText" required maxlength="4000"></textarea>
-<label for="assetSource">Source or provenance</label><input id="assetSource" required maxlength="300" placeholder="Approved internal brand guide">
+<form id="assetForm"><label for="assetBrand">Brand</label><input id="assetBrand" name="assetBrand" required maxlength="100" placeholder="Example Studio">
+<label for="assetId">Unique reference ID</label><input id="assetId" name="assetId" required pattern="[a-zA-Z0-9_-]+" maxlength="48" placeholder="example-guideline-1">
+<label for="assetTitle">Title</label><input id="assetTitle" name="assetTitle" required maxlength="150">
+<label for="assetText">Guideline or excerpt</label><textarea id="assetText" name="assetText" required maxlength="4000"></textarea>
+<label for="assetSource">Source or provenance</label><input id="assetSource" name="assetSource" required maxlength="300" placeholder="Approved internal brand guide">
 <button type="submit">Save as pending review</button><div id="assetStatus" class="status" role="status" aria-live="polite"></div></form>
 </section>
 <section class="panel"><h2>04 / Your local references</h2><p class="small">Only approved references are used for generation. Assets remain in a local JSON file on your computer.</p><div id="assets" aria-live="polite">Loading local references…</div></section>
