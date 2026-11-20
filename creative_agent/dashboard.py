@@ -1,4 +1,4 @@
-"""Local-only dashboard server: no credentials, external API calls, or publishing.
+"""Loopback-only dashboard: optional explicit provider calls and no publishing.
 
 Run with: python -m creative_agent.dashboard
 """
@@ -11,6 +11,8 @@ import tempfile
 from urllib.parse import urlsplit
 
 from .knowledge import Asset, KnowledgeStore
+from .history import HistoryStore
+from .ai_provider import GenerationError, GenerationSettings, FIELDS, generate
 from .planner import Brief
 from .supervisor import coordinate
 
@@ -22,8 +24,9 @@ SAFE_ID = re.compile(r"^[a-zA-Z0-9_-]{1,48}$")
 
 
 class DashboardService:
-    def __init__(self, asset_path: Path):
+    def __init__(self, asset_path: Path, history_path: Path | None = None):
         self.asset_path = Path(asset_path)
+        self.history = HistoryStore(history_path or self.asset_path.with_name("drafts.json"))
 
     def load(self):
         if not self.asset_path.exists():
@@ -93,7 +96,53 @@ class DashboardService:
             raise ValueError("unexpected brief fields")
         brief = Brief(**payload)
         store = KnowledgeStore([Asset(**item) for item in self.load()])
-        return coordinate(brief, store=store)
+        campaign = coordinate(brief, store=store)
+        row = self.history.add(campaign, kind="offline")
+        campaign["draft_id"] = row["id"]
+        return campaign
+
+    def history_list(self):
+        return self.history.list()
+
+    def review_draft(self, payload):
+        if not isinstance(payload, dict) or set(payload) - {"id", "reviewer", "approve", "notes"}:
+            raise ValueError("invalid review request")
+        return self.history.decide(
+            payload.get("id"), reviewer=payload.get("reviewer"),
+            approve=payload.get("approve"), notes=payload.get("notes", "")
+        )
+
+    def generate_draft(self, payload):
+        """Explicit one-module provider call; never send an API key to the browser."""
+        if os.environ.get("CREATIVE_AGENT_ENABLE_AI") != "1":
+            raise GenerationError("Live AI generation is disabled on this computer")
+        if not isinstance(payload, dict) or set(payload) != {"brief", "module", "confirm_cost"}:
+            raise ValueError("expected brief, module, and explicit cost confirmation")
+        if payload["confirm_cost"] is not True:
+            raise ValueError("cost confirmation required")
+        module = payload["module"]
+        if module not in FIELDS:
+            raise ValueError("invalid specialist module")
+        # Require an explicit cost estimate and ceiling before any billable request.
+        settings = GenerationSettings(
+            model=os.environ["CREATIVE_AGENT_MODEL"],
+            max_output_tokens=250,
+            estimated_input_usd_per_million=float(os.environ["CREATIVE_AGENT_INPUT_USD_PER_MILLION"]),
+            estimated_output_usd_per_million=float(os.environ["CREATIVE_AGENT_OUTPUT_USD_PER_MILLION"]),
+            max_estimated_request_usd=float(os.environ["CREATIVE_AGENT_REQUEST_CAP_USD"]),
+        )
+        raw_brief = payload["brief"]
+        if not isinstance(raw_brief, dict) or set(raw_brief) - {"brand","audience","goal","platform","topic","tone"}:
+            raise ValueError("invalid brief")
+        brief = Brief(**raw_brief)
+        campaign = coordinate(brief, store=KnowledgeStore([Asset(**a) for a in self.load()]))
+        # Provider request is scoped to the brief only: no private reference upload.
+        output = generate(brief, module, settings=settings)
+        campaign["generated"] = {module: output}
+        campaign["limitations"].append("Generated text is unverified. Brand references were not sent to AI.")
+        row = self.history.add(campaign, kind="ai")
+        campaign["draft_id"] = row["id"]
+        return campaign
 
 
 def make_handler(service):
@@ -112,7 +161,14 @@ def make_handler(service):
         def _path(self):
             return urlsplit(self.path).path
 
+        def _valid_host(self):
+            # Protect local/private assets from DNS-rebinding Host spoofing.
+            return self.headers.get("Host", "") == f"127.0.0.1:{self.server.server_port}"
+
         def do_GET(self):
+            if not self._valid_host():
+                self._json(403, {"error": "Local dashboard only"})
+                return
             path = self._path()
             if path == "/":
                 body = UI.read_bytes()
@@ -124,6 +180,13 @@ def make_handler(service):
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
+            elif path == "/api/history":
+                try:
+                    self._json(200, {"drafts": service.history_list()})
+                except (ValueError, OSError, TypeError, KeyError):
+                    self._json(400, {"error": "Could not read draft history"})
+            elif path == "/api/config":
+                self._json(200, {"ai_enabled": os.environ.get("CREATIVE_AGENT_ENABLE_AI") == "1"})
             elif path == "/api/assets":
                 try:
                     self._json(200, {"assets": service.assets()})
@@ -134,13 +197,13 @@ def make_handler(service):
 
         def do_POST(self):
             path = self._path()
-            if path not in ("/api/plan", "/api/assets", "/api/review"):
+            if path not in ("/api/plan", "/api/assets", "/api/review", "/api/generate", "/api/history/review"):
                 self._json(404, {"error": "Not found"})
                 return
             # Loopback-only plus exact Origin comparison for browser POSTs.
             origin = self.headers.get("Origin")
             authority = self.headers.get("Host", "")
-            if origin != f"http://{authority}" or not authority.startswith("127.0.0.1:"):
+            if not self._valid_host() or origin != f"http://{authority}":
                 self._json(403, {"error": "Only requests from the local dashboard are allowed"})
                 return
             if self.headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/json":
@@ -160,8 +223,15 @@ def make_handler(service):
                     result = service.plan(payload)
                 elif path == "/api/assets":
                     result = service.add_asset(payload)
-                else:
+                elif path == "/api/review":
                     result = service.review_asset(payload)
+                elif path == "/api/history/review":
+                    result = service.review_draft(payload)
+                else:
+                    result = service.generate_draft(payload)
+            except GenerationError:
+                self._json(400, {"error": "AI generation failed or is disabled. Check local configuration, budget and model."})
+                return
             except (ValueError, TypeError, KeyError, UnicodeDecodeError, OSError):
                 self._json(400, {"error": "Invalid or incomplete input"})
                 return
@@ -178,7 +248,7 @@ def main():
                                str(Path.home() / ".creative-agent" / "assets.json")))
     server = ThreadingHTTPServer(("127.0.0.1", 8765), make_handler(DashboardService(path)))
     print("Creative Agent dashboard: http://127.0.0.1:8765")
-    print("Local-only; no AI API calls or publishing. Press Ctrl+C to stop.")
+    print("Local-only. AI calls require explicit opt-in, configuration and confirmation. No publishing.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

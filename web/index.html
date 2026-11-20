@@ -32,7 +32,7 @@ footer{max-width:1240px;margin:0 auto;padding:15px 20px 45px;color:#798ca5;font-
 <main>
 <div class="eyebrow">JoCoded / Creative operations</div><h1>From brief to better creative.</h1>
 <p>Plan a campaign, review structured production drafts, and manage your own approved brand references in one private local workspace.</p>
-<div class="banner">This first dashboard uses the tested offline planner. It does not call a live AI provider, publish posts, or send private brand material to third parties.</div>
+<div class="banner">Offline plans remain the default. Live AI is optional, off unless enabled locally, and requires explicit cost confirmation. Private reference materials are not sent to the model. Nothing is published.</div>
 <div class="grid">
 <section class="panel"><h2>01 / Creative brief</h2>
 <form id="brief">
@@ -49,10 +49,20 @@ footer{max-width:1240px;margin:0 auto;padding:15px 20px 45px;color:#798ca5;font-
 <pre id="preview" aria-live="polite">Create a brief to see your first draft.</pre>
 <p class="small">Drafts are proposed templates. Verify all claims and placeholders before external use.</p>
 <button class="secondary" id="download" disabled>Export draft JSON</button>
-<button class="secondary" id="review" disabled>Record human approval locally</button>
+<button class="secondary" id="review" disabled>Review saved draft</button>
 <div class="status" id="planStatus" role="status" aria-live="polite"></div>
 </section>
-<section class="panel"><h2>03 / Add brand knowledge</h2><p class="small">New references begin unapproved. Approve each reference manually before it can inform retrieval.</p>
+<section class="panel"><h2>03 / Optional AI generation</h2>
+<p class="small">Disabled by default. When configured locally, one specialist request incurs possible API charges. Generated content requires verification and review.</p>
+<label for="aiModule">Select specialist</label>
+<select id="aiModule"><option value="strategy">Content strategy</option><option value="copywriting">Copywriting</option><option value="video_script">Video script</option></select>
+<button id="aiGenerate" disabled>Generate one AI draft</button>
+<div class="status" id="aiStatus" role="status" aria-live="polite">Checking local configuration…</div>
+</section>
+<section class="panel"><div class="row"><h2>04 / Saved drafts</h2><button class="secondary" id="refreshHistory">Refresh</button></div>
+<p class="small">Plans and explicit human decisions are stored locally. Select a draft to inspect or review it. No automatic publication.</p>
+<div id="history" aria-live="polite">Loading history…</div></section>
+<section class="panel"><h2>05 / Add brand knowledge</h2><p class="small">New references begin unapproved. Approve each reference manually before it can inform retrieval.</p>
 <form id="assetForm"><label for="assetBrand">Brand</label><input id="assetBrand" name="assetBrand" required maxlength="100" placeholder="Example Studio">
 <label for="assetId">Unique reference ID</label><input id="assetId" name="assetId" required pattern="[a-zA-Z0-9_-]+" maxlength="48" placeholder="example-guideline-1">
 <label for="assetTitle">Title</label><input id="assetTitle" name="assetTitle" required maxlength="150">
@@ -60,8 +70,8 @@ footer{max-width:1240px;margin:0 auto;padding:15px 20px 45px;color:#798ca5;font-
 <label for="assetSource">Source or provenance</label><input id="assetSource" name="assetSource" required maxlength="300" placeholder="Approved internal brand guide">
 <button type="submit">Save as pending review</button><div id="assetStatus" class="status" role="status" aria-live="polite"></div></form>
 </section>
-<section class="panel"><h2>04 / Your local references</h2><p class="small">Only approved references are used for generation. Assets remain in a local JSON file on your computer.</p><div id="assets" aria-live="polite">Loading local references…</div></section>
-</div></main><footer>Creative Agent Studio · JoCoded · Local prototype · No cloud sync or live AI calls</footer>
+<section class="panel"><h2>06 / Your local references</h2><p class="small">Only approved references are used for generation. Assets remain in a local JSON file on your computer.</p><div id="assets" aria-live="polite">Loading local references…</div></section>
+</div></main><footer>Creative Agent Studio · JoCoded · Local prototype · No cloud sync or automatic publishing</footer>
 <script>
 "use strict";
 let campaign=null, selected="strategy";
@@ -79,20 +89,55 @@ el("brief").addEventListener("submit",async event=>{
  event.preventDefault();el("briefStatus").textContent="Building draft…";
  try{const data=Object.fromEntries(new FormData(event.target).entries());campaign=await request("/api/plan","POST",data);
  el("planState").textContent="Needs human review";el("briefStatus").textContent="Draft created.";
- el("download").disabled=false;el("review").disabled=false;show();
+ el("download").disabled=false;el("review").disabled=false;show();await loadHistory();
  }catch(err){el("briefStatus").textContent=err.message}
 });
 el("download").addEventListener("click",()=>{
  if(!campaign)return;const blob=new Blob([JSON.stringify(campaign,null,2)],{type:"application/json"});
  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="creative-campaign-draft.json";a.click();URL.revokeObjectURL(url);
 });
-el("review").addEventListener("click",()=>{
- if(!campaign)return;const reviewer=window.prompt("Your name for this human review record:");
+el("review").addEventListener("click",async()=>{
+ if(!campaign?.draft_id)return;
+ const reviewer=window.prompt("Your name for this human review record:");
  if(!reviewer?.trim())return;
- campaign.review={state:"approved",reviewer:reviewer.trim(),reviewed_at:new Date().toISOString(),notes:"Reviewed locally by user"};
- campaign.publishable=false;el("planState").textContent="Reviewed · not published";el("review").disabled=true;
- el("planStatus").textContent="Review recorded in this browser session. Export JSON to retain it.";show();
+ const approve=window.confirm("Approve this saved draft? Cancel requests changes instead. Approval never publishes.");
+ const notes=window.prompt("Optional review notes:")||"";
+ try{const row=await request("/api/history/review","POST",{id:campaign.draft_id,reviewer:reviewer.trim(),approve,notes});
+ campaign.review=row.review;campaign.publishable=false;el("planState").textContent="Reviewed · not published";
+ el("review").disabled=true;el("planStatus").textContent="Review saved locally.";show();await loadHistory();
+ }catch(e){el("planStatus").textContent=e.message}
 });
+async function loadHistory(){
+ try{const {drafts}=await request("/api/history");const parent=el("history");parent.replaceChildren();
+ if(!drafts.length){parent.textContent="No saved drafts yet.";return}
+ for(const row of drafts){
+ const item=document.createElement("div");item.className="asset";
+ const name=document.createElement("strong");name.textContent=(row.brief.brand||"Untitled")+" · "+(row.brief.topic||"New brief");item.append(name);
+ const meta=document.createElement("em");meta.textContent=row.kind+" · "+row.review.state+" · "+row.created_at;item.append(meta);
+ const button=document.createElement("button");button.className="secondary";button.textContent="Open draft";
+ button.addEventListener("click",()=>{campaign={...row.campaign,draft_id:row.id,review:row.review,publishable:false};selected="strategy";show();
+ el("planState").textContent=row.review.state;el("download").disabled=false;el("review").disabled=row.review.state!=="needs_review";el("planStatus").textContent="Saved draft loaded.";});
+ item.append(button);parent.append(item)
+ }
+ }catch(e){el("history").textContent="Unable to load saved drafts."}
+}
+el("refreshHistory").addEventListener("click",loadHistory);
+el("aiGenerate").addEventListener("click",async()=>{
+ const brief=Object.fromEntries(new FormData(el("brief")).entries());
+ const module=el("aiModule").value;
+ if(!window.confirm("Generate one AI "+module+" draft? This sends only the brief to your configured provider and may incur charges."))return;
+ el("aiGenerate").disabled=true;el("aiStatus").textContent="Requesting one AI draft…";
+ try{campaign=await request("/api/generate","POST",{brief,module,confirm_cost:true});
+ selected="generated";show();el("planState").textContent="AI draft · needs review";el("download").disabled=false;el("review").disabled=false;
+ el("aiStatus").textContent="AI draft saved locally; verify every factual claim.";await loadHistory();
+ }catch(e){el("aiStatus").textContent=e.message}
+ finally{el("aiGenerate").disabled=false}
+});
+async function loadConfig(){
+ try{const cfg=await request("/api/config");el("aiGenerate").disabled=!cfg.ai_enabled;
+ el("aiStatus").textContent=cfg.ai_enabled?"AI configured locally; live calls require your confirmation.":"AI is off. Configure environment variables to enable it."}
+ catch(e){el("aiStatus").textContent="Unable to check AI status."}
+}
 async function loadAssets(){
  try{const data=await request("/api/assets");const parent=el("assets");parent.replaceChildren();
  if(!data.assets.length){parent.textContent="No references yet.";return}
@@ -113,5 +158,5 @@ el("assetForm").addEventListener("submit",async event=>{
  try{await request("/api/assets","POST",data);el("assetStatus").textContent="Saved as pending review.";event.target.reset();await loadAssets()}
  catch(e){el("assetStatus").textContent=e.message}
 });
-loadAssets();
+loadAssets();loadHistory();loadConfig();
 </script></body></html>

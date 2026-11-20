@@ -4,7 +4,7 @@ A modular creative-strategy and production-assistant project for social media pl
 
 ## Status
 
-**Milestones 1–5 implemented:** deterministic planner, review-gated pipeline, optional OpenAI provider, approved-asset retrieval, supervisor, and a local browser dashboard.
+**Milestones 1–6 implemented:** deterministic planner, review-gated pipeline, optional OpenAI provider, approved-asset retrieval, supervisor, and a local browser dashboard.
 
 The current implementation provides dependency-free, editable creative strategy, copywriting scaffolds, and video-storyboard templates. It does **not** call an AI model, research factual claims, scrape social media, or publish content. Human review decisions are recorded, but even an approved result cannot auto-publish. An optional provider adapter is available for configured live calls; no live model call is made in CI. Milestone 4 adds a local keyword retrieval prototype, a supervisor that composes specialist modules, and a read-only tool adapter interface. There is **no live MCP client or server connection**, vector embedding database, or autonomous remote tool execution; these remain potential later integrations.
 
@@ -87,6 +87,23 @@ Dashboard features:
 
 The local reference store defaults to `~/.creative-agent/assets.json` and is ignored by Git. You can override its path with `CREATIVE_AGENT_ASSETS_FILE`. Treat the file as confidential and back it up yourself. The browser interface is for trusted local use only; do not expose its port through reverse proxies, containers or remote tunnels.
 
+## Milestone 6: AI opt-in and durable draft history
+
+The local dashboard can now record **offline draft history, human review decisions, and approved/reference workflows**, stored in `~/.creative-agent/drafts.json` by default. Saved drafts are private local JSON files with restricted file permissions, not cloud-synced. Review decisions remain non-publishing. The dashboard includes a saved-draft history panel, one-module AI generator, and explicit confirmation that the request may incur an API charge.
+
+**Live AI is disabled by default.** To opt in, configure these environment variables on your trusted local machine (never commit API keys):
+- `CREATIVE_AGENT_ENABLE_AI=1`
+- `OPENAI_API_KEY` — your own provider credential
+- `CREATIVE_AGENT_MODEL` — a model that supports Chat Completions JSON mode
+- `CREATIVE_AGENT_INPUT_USD_PER_MILLION` and `CREATIVE_AGENT_OUTPUT_USD_PER_MILLION` — your verified current price estimates
+- `CREATIVE_AGENT_REQUEST_CAP_USD` — positive estimated per-request cap
+
+The browser **never receives the API key**. Every request requires a separate user confirmation; one click requests **one specialist module** only, not all three. The server rejects requests if AI is disabled, consent is absent, or the configured preflight **estimated** budget would be exceeded. This preflight is not a guaranteed spending cap or current pricing verification. Charges, if any, depend on your provider account and usage. Brand knowledge references are **not sent** to the provider; only the brief is sent.
+
+The dashboard is still restricted to `127.0.0.1`. It now also validates the exact local Host header for data reads, reducing DNS-rebinding exposure. Do not place it behind a public proxy or run it on a shared multi-user host. No login system is provided. Generated claims still need human verification; review does not publish anything.
+
+**Testing:** Unit and HTTP tests run without live API keys or charges. There is no end-to-end paid-model evaluation in CI and no guarantee of artistic quality.
+
 ## Quality checks
 
 ```bash
@@ -110,6 +127,7 @@ creative_agent/
   supervisor.py    # Orchestration and human review handoff
   integrations.py  # Opt-in trusted read-only tool interface
   dashboard.py     # Loopback-only local web service
+  history.py       # Local persistent drafts and review decisions
 examples/
   sample_brief.json
   campaign_demo.py
@@ -122,6 +140,7 @@ tests/
   test_evaluation.py
   test_milestone4.py
   test_dashboard.py
+  test_history_ai_dashboard.py
 evaluation/
   fixtures.json
   offline_eval.py
@@ -137,7 +156,8 @@ web/
 2. **Milestone 2:** content strategy, copywriting and video-script modules with defined contracts and human approval records (**implemented as deterministic scaffolds**).
 3. **Milestone 3:** optional JSON model-provider adapter, tests with fake transport, offline contract fixtures, and preflight estimated per-request cost cap (**implemented**).
 4. **Milestone 4:** local approved-asset retrieval, supervised specialist coordination and trusted read-only integration contract (**implemented as offline prototypes**; live MCP, vector RAG, and autonomous agents are not implemented).
-5. **Milestone 5:** responsive local browser dashboard for briefs, drafts, review and reference management (**implemented**); live AI generation from the UI and cloud hosting are not implemented.
+5. **Milestone 5:** responsive local browser dashboard for briefs, drafts, review and reference management (**implemented**).
+6. **Milestone 6:** explicitly opt-in single-module provider calls in the local dashboard, durable draft history, human review records, and additional HTTP security checks (**implemented**, with no paid live-model integration tests).
 
 ## Design principles
 
