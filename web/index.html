@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Creative Agent Studio · JoCoded</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#0c1019;color:#e9edf8}
+*{box-sizing:border-box}body{margin:0}header{padding:22px max(20px,calc((100vw - 1240px)/2));border-bottom:1px solid #253042;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{font-weight:800;letter-spacing:-.04em;font-size:22px}.brand b{color:#96aaff}.pill{border:1px solid #35445c;border-radius:40px;color:#a7b9cf;padding:7px 12px;font-size:12px}
+main{max-width:1240px;margin:auto;padding:34px 20px 70px}.eyebrow{color:#a1adff;text-transform:uppercase;letter-spacing:.18em;font-size:11px;font-weight:800}
+h1{font-size:clamp(30px,4vw,48px);margin:9px 0 10px;letter-spacing:-.045em}p{color:#aab9cc;line-height:1.6}h2{font-size:18px;margin:0 0 18px}
+.grid{display:grid;grid-template-columns:minmax(280px,430px) minmax(320px,1fr);gap:20px;margin-top:30px}
+.panel{background:#141c2a;border:1px solid #2a354b;border-radius:20px;padding:24px;box-shadow:0 20px 48px #0002}
+label{display:block;color:#bac9dc;font-size:13px;font-weight:650;margin:14px 0 7px}
+input,select,textarea{width:100%;background:#0d1421;border:1px solid #34425c;border-radius:10px;color:#f6f7ff;padding:12px 13px;font:inherit;outline:none}
+textarea{min-height:90px;resize:vertical}input:focus,select:focus,textarea:focus{border-color:#8c9fff}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{background:#8d9ffa;border:0;border-radius:11px;padding:12px 18px;font-weight:800;color:#10172a;cursor:pointer;margin-top:17px}
+button.secondary{background:#25314a;color:#e9efff;margin:0}button:hover{filter:brightness(1.09)}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0c1421;border:1px solid #27354a;border-radius:12px;padding:16px;max-height:580px;overflow:auto;line-height:1.55;font-size:12px}
+.status{color:#b3c2d4;font-size:12px;min-height:18px;margin-top:9px}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.tabs button{margin:0;font-size:12px;padding:8px 12px}
+.small{font-size:12px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.asset{border:1px solid #2f3e55;padding:12px;border-radius:12px;margin:9px 0}.asset strong{display:block}.asset em{font-size:12px;color:#a3b0cb}
+.asset button{font-size:12px;padding:8px 10px;margin:8px 6px 0 0}
+.banner{border-left:3px solid #a4b4ff;padding:11px 15px;background:#1c2944;border-radius:6px;color:#c9d5f0;font-size:13px;margin:22px 0}
+footer{max-width:1240px;margin:0 auto;padding:15px 20px 45px;color:#798ca5;font-size:12px}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.duo{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="brand">✦ Creative Agent <span style="color:#8f9cba">Studio</span></div><div class="pill">LOCAL • HUMAN REVIEW REQUIRED</div></header>
+<main>
+<div class="eyebrow">JoCoded / Creative operations</div><h1>From brief to better creative.</h1>
+<p>Plan a campaign, review structured production drafts, and manage your own approved brand references in one private local workspace.</p>
+<div class="banner">This first dashboard uses the tested offline planner. It does not call a live AI provider, publish posts, or send private brand material to third parties.</div>
+<div class="grid">
+<section class="panel"><h2>01 / Creative brief</h2>
+<form id="brief">
+<label for="brand">Brand</label><input id="brand" name="brand" placeholder="Example Studio" value="Example Studio" required maxlength="100">
+<label for="audience">Audience</label><input id="audience" name="audience" placeholder="Early-career designers" value="Early-career designers" required maxlength="150">
+<div class="duo"><div><label for="goal">Campaign objective</label><select id="goal" name="goal"><option>awareness</option><option>engagement</option><option>conversion</option><option selected>education</option></select></div>
+<div><label for="platform">Platform</label><select id="platform" name="platform"><option selected>instagram</option><option>linkedin</option><option>tiktok</option><option>x</option><option>youtube</option></select></div></div>
+<label for="topic">Campaign topic</label><textarea id="topic" name="topic" maxlength="500" required>Building a practical portfolio</textarea>
+<label for="tone">Brand voice</label><input id="tone" name="tone" value="Clear, warm and practical" maxlength="150" required>
+<button type="submit">Generate offline campaign plan →</button><div class="status" id="briefStatus" role="status" aria-live="polite"></div>
+</form></section>
+<section class="panel"><div class="row"><h2>02 / Production workspace</h2><span class="pill" id="planState">Awaiting brief</span></div>
+<div class="tabs"><button class="secondary" data-view="strategy">Strategy</button><button class="secondary" data-view="copywriting">Copy</button><button class="secondary" data-view="video_script">Video</button><button class="secondary" data-view="retrieval">References</button><button class="secondary" data-view="review">Review</button></div>
+<pre id="preview" aria-live="polite">Create a brief to see your first draft.</pre>
+<p class="small">Drafts are proposed templates. Verify all claims and placeholders before external use.</p>
+<button class="secondary" id="download" disabled>Export draft JSON</button>
+<button class="secondary" id="review" disabled>Record human approval locally</button>
+<div class="status" id="planStatus" role="status" aria-live="polite"></div>
+</section>
+<section class="panel"><h2>03 / Add brand knowledge</h2><p class="small">New references begin unapproved. Approve each reference manually before it can inform retrieval.</p>
+<form id="assetForm"><label for="assetBrand">Brand</label><input id="assetBrand" name="assetBrand" required maxlength="100" placeholder="Example Studio">
+<label for="assetId">Unique reference ID</label><input id="assetId" name="assetId" required pattern="[a-zA-Z0-9_-]+" maxlength="48" placeholder="example-guideline-1">
+<label for="assetTitle">Title</label><input id="assetTitle" name="assetTitle" required maxlength="150">
+<label for="assetText">Guideline or excerpt</label><textarea id="assetText" name="assetText" required maxlength="4000"></textarea>
+<label for="assetSource">Source or provenance</label><input id="assetSource" name="assetSource" required maxlength="300" placeholder="Approved internal brand guide">
+<button type="submit">Save as pending review</button><div id="assetStatus" class="status" role="status" aria-live="polite"></div></form>
+</section>
+<section class="panel"><h2>04 / Your local references</h2><p class="small">Only approved references are used for generation. Assets remain in a local JSON file on your computer.</p><div id="assets" aria-live="polite">Loading local references…</div></section>
+</div></main><footer>Creative Agent Studio · JoCoded · Local prototype · No cloud sync or live AI calls</footer>
+<script>
+"use strict";
+let campaign=null, selected="strategy";
+const el=id=>document.getElementById(id);
+async function request(path,method="GET",payload){
+ const options={method,headers:method==="POST"?{"Content-Type":"application/json"}:{},body:method==="POST"?JSON.stringify(payload):undefined};
+ const res=await fetch(path,options);
+ const data=await res.json();
+ if(!res.ok)throw Error(data.error||"Request failed");
+ return data;
+}
+function show(){el("preview").textContent=campaign?JSON.stringify(campaign[selected]??{},null,2):"Create a brief to see your first draft."}
+document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{selected=button.dataset.view;show()}));
+el("brief").addEventListener("submit",async event=>{
+ event.preventDefault();el("briefStatus").textContent="Building draft…";
+ try{const data=Object.fromEntries(new FormData(event.target).entries());campaign=await request("/api/plan","POST",data);
+ el("planState").textContent="Needs human review";el("briefStatus").textContent="Draft created.";
+ el("download").disabled=false;el("review").disabled=false;show();
+ }catch(err){el("briefStatus").textContent=err.message}
+});
+el("download").addEventListener("click",()=>{
+ if(!campaign)return;const blob=new Blob([JSON.stringify(campaign,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="creative-campaign-draft.json";a.click();URL.revokeObjectURL(url);
+});
+el("review").addEventListener("click",()=>{
+ if(!campaign)return;const reviewer=window.prompt("Your name for this human review record:");
+ if(!reviewer?.trim())return;
+ campaign.review={state:"approved",reviewer:reviewer.trim(),reviewed_at:new Date().toISOString(),notes:"Reviewed locally by user"};
+ campaign.publishable=false;el("planState").textContent="Reviewed · not published";el("review").disabled=true;
+ el("planStatus").textContent="Review recorded in this browser session. Export JSON to retain it.";show();
+});
+async function loadAssets(){
+ try{const data=await request("/api/assets");const parent=el("assets");parent.replaceChildren();
+ if(!data.assets.length){parent.textContent="No references yet.";return}
+ for(const asset of data.assets){
+ const box=document.createElement("div");box.className="asset";
+ const title=document.createElement("strong");title.textContent=asset.title;box.append(title);
+ const detail=document.createElement("em");detail.textContent=asset.brand+" · "+(asset.approved?"Approved":"Pending review")+" · "+asset.source;box.append(detail);
+ const text=document.createElement("p");text.className="small";text.textContent=asset.text;box.append(text);
+ const action=document.createElement("button");action.className="secondary";action.textContent=asset.approved?"Revoke approval":"Approve reference";
+ action.addEventListener("click",async()=>{if(!window.confirm("Record this approval change for "+asset.id+"?"))return;
+ try{await request("/api/review","POST",{id:asset.id,approve:!asset.approved});await loadAssets()}catch(e){el("assetStatus").textContent=e.message}});
+ box.append(action);parent.append(box)}
+ }catch(e){el("assets").textContent=e.message}
+}
+el("assetForm").addEventListener("submit",async event=>{
+ event.preventDefault();const fd=new FormData(event.target);
+ const data={id:fd.get("assetId"),brand:fd.get("assetBrand"),title:fd.get("assetTitle"),text:fd.get("assetText"),source:fd.get("assetSource")};
+ try{await request("/api/assets","POST",data);el("assetStatus").textContent="Saved as pending review.";event.target.reset();await loadAssets()}
+ catch(e){el("assetStatus").textContent=e.message}
+});
+loadAssets();
+</script></body></html>

@@ -4,7 +4,7 @@ A modular creative-strategy and production-assistant project for social media pl
 
 ## Status
 
-**Milestones 1–4 implemented:** deterministic planner, review-gated creative pipeline, opt-in OpenAI provider, and offline brand-knowledge retrieval with supervised coordination.
+**Milestones 1–5 implemented:** deterministic planner, review-gated pipeline, optional OpenAI provider, approved-asset retrieval, supervisor, and a local browser dashboard.
 
 The current implementation provides dependency-free, editable creative strategy, copywriting scaffolds, and video-storyboard templates. It does **not** call an AI model, research factual claims, scrape social media, or publish content. Human review decisions are recorded, but even an approved result cannot auto-publish. An optional provider adapter is available for configured live calls; no live model call is made in CI. Milestone 4 adds a local keyword retrieval prototype, a supervisor that composes specialist modules, and a read-only tool adapter interface. There is **no live MCP client or server connection**, vector embedding database, or autonomous remote tool execution; these remain potential later integrations.
 
@@ -68,6 +68,25 @@ The `coordinate(brief, store=store)` supervisor runs local planning and retrieva
 
 The fictional demo assets are not real brand materials. Never commit proprietary client assets, private customer data or credentials; use secure local storage and permission checks before real deployments.
 
+## Milestone 5: local dashboard
+
+Run the dashboard on your own computer:
+
+```bash
+python -m creative_agent.dashboard
+```
+
+Visit **http://127.0.0.1:8765** in your browser. The app binds only to loopback and serves its own single-page HTML interface. It does not deploy to the public internet, call any AI provider, or publish to social media.
+
+Dashboard features:
+- Create creative briefs and inspect campaign strategy, draft copy, video plan and approved reference matches.
+- Export campaign drafts as local JSON files. A user can record review approval in the current browser session; export to retain that review record. Approval never triggers publishing.
+- Add brand-reference text to a local JSON file as **unapproved**. Explicitly approve/revoke each reference. Only approved, matching-brand records are retrieved.
+- View all stored references and their review status. This single-user local prototype has no login, team collaboration, cloud sync, or audit history.
+- The optional LLM adapter from Milestone 3 is **not connected to the browser dashboard**. No live generation is available in this interface yet.
+
+The local reference store defaults to `~/.creative-agent/assets.json` and is ignored by Git. You can override its path with `CREATIVE_AGENT_ASSETS_FILE`. Treat the file as confidential and back it up yourself. The browser interface is for trusted local use only; do not expose its port through reverse proxies, containers or remote tunnels.
+
 ## Quality checks
 
 ```bash
@@ -90,6 +109,7 @@ creative_agent/
   knowledge.py     # Approved, brand-scoped keyword retrieval
   supervisor.py    # Orchestration and human review handoff
   integrations.py  # Opt-in trusted read-only tool interface
+  dashboard.py     # Loopback-only local web service
 examples/
   sample_brief.json
   campaign_demo.py
@@ -101,9 +121,12 @@ tests/
   test_ai_provider.py
   test_evaluation.py
   test_milestone4.py
+  test_dashboard.py
 evaluation/
   fixtures.json
   offline_eval.py
+web/
+  index.html
 .github/workflows/
   quality.yml
 ```
@@ -114,6 +137,7 @@ evaluation/
 2. **Milestone 2:** content strategy, copywriting and video-script modules with defined contracts and human approval records (**implemented as deterministic scaffolds**).
 3. **Milestone 3:** optional JSON model-provider adapter, tests with fake transport, offline contract fixtures, and preflight estimated per-request cost cap (**implemented**).
 4. **Milestone 4:** local approved-asset retrieval, supervised specialist coordination and trusted read-only integration contract (**implemented as offline prototypes**; live MCP, vector RAG, and autonomous agents are not implemented).
+5. **Milestone 5:** responsive local browser dashboard for briefs, drafts, review and reference management (**implemented**); live AI generation from the UI and cloud hosting are not implemented.
 
 ## Design principles
 
