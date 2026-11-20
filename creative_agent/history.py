@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Local draft archive, atomic writes and explicit human review."""
 from datetime import datetime, timezone
 import json
