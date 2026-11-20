@@ -4,9 +4,9 @@ A modular creative-strategy and production-assistant project for social media pl
 
 ## Status
 
-**Milestone 1: deterministic Python creative-brief planner (implemented).**
+**Milestones 1 and 2 implemented:** deterministic creative brief planner plus a modular, review-gated creative-production pipeline.
 
-This milestone provides a working, dependency-free baseline for turning a structured brief into a proposed creative plan. It does **not** call an AI model, scrape social media, publish content, or claim to provide live trend analysis. The multi-agent supervisor, MCP tools, retrieval-augmented memory, and design/video integrations below remain **planned**.
+The current implementation provides dependency-free, editable creative strategy, copywriting scaffolds, and video-storyboard templates. It does **not** call an AI model, research factual claims, scrape social media, or publish content. Human review decisions are recorded, but even an approved result cannot auto-publish. Provider-powered generation, MCP and RAG remain planned.
 
 ## Quick start
 
@@ -25,6 +25,16 @@ It prints JSON containing:
 
 Edit the example JSON to provide your own brand, audience, goal, platform, topic, and optional tone. Supported platforms: `instagram`, `linkedin`, `tiktok`, `x`, and `youtube`. Goals: `awareness`, `engagement`, `conversion`, and `education`.
 
+## Milestone 2: specialist production modules
+
+Run the full strategy + copy + video proposal:
+
+```bash
+python examples/campaign_demo.py
+```
+
+The `creative_agent.pipeline` module provides `strategy(brief)`, `copywriting(brief)`, `video_script(brief)`, and `create_campaign(brief)`. Every campaign starts with `review.state = needs_review` and `publishable = false`. A human can record `request_review_decision(campaign, reviewer=..., approve=..., notes=...)`; this records a review outcome **without publishing** or enabling automatic publication. Output contains explicitly marked placeholders for claims that require sourcing and review. These are transparent deterministic templates, **not** model-generated copy.
+
 ## Quality checks
 
 ```bash
@@ -41,10 +51,13 @@ creative_agent/
   __init__.py      # Public API
   planner.py       # Brief validation and deterministic planning
   __main__.py      # JSON-to-JSON command-line interface
+  pipeline.py      # Strategy, copy, video and review gates
 examples/
   sample_brief.json
+  campaign_demo.py
 tests/
   test_planner.py
+  test_pipeline.py
 .github/workflows/
   quality.yml
 ```
@@ -52,7 +65,7 @@ tests/
 ## Roadmap
 
 1. **Milestone 1:** validate briefs, suggest formats and review criteria; CLI, tests, automated quality checks.
-2. **Milestone 2:** dedicated copy, design, and video-script modules with defined contracts and human approval steps.
+2. **Milestone 2:** content strategy, copywriting and video-script modules with defined contracts and human approval records (**implemented as deterministic scaffolds**).
 3. **Milestone 3:** optional model-provider adapters with safe secret handling, evaluation datasets, and cost limits.
 4. **Milestone 4:** opt-in MCP integrations, RAG asset library, and supervised multi-agent execution.
 
