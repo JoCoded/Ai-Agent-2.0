@@ -23,8 +23,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Compile Python sources
-        run: python -m compileall -q creative_agent tests
+        run: python -m compileall -q creative_agent tests evaluation
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
       - name: Validate example output
         run: python -m creative_agent examples/sample_brief.json > /tmp/creative-plan.json
+      - name: Run offline evaluation suite
+        run: python -m evaluation.offline_eval
