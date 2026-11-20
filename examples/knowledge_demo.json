@@ -1,0 +1,26 @@
+[
+  {
+    "id": "demo-portfolio-guidance",
+    "brand": "Example Studio",
+    "title": "Portfolio content guidance",
+    "text": "Use clear examples to demonstrate portfolio development steps. Prefer concrete advice, readable captions, and accessible creative assets.",
+    "approved": true,
+    "source": "fictional demonstration guideline"
+  },
+  {
+    "id": "demo-unapproved",
+    "brand": "Example Studio",
+    "title": "Unreviewed portfolio claim",
+    "text": "Unsupported assertion about portfolios.",
+    "approved": false,
+    "source": "fictional unreviewed note"
+  },
+  {
+    "id": "demo-other-brand",
+    "brand": "Unrelated Brand",
+    "title": "Portfolio secret",
+    "text": "This brand's portfolio-only reference must never be shown for Example Studio.",
+    "approved": true,
+    "source": "fictional other-brand note"
+  }
+]
