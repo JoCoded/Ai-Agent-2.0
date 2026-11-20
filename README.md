@@ -1,35 +1,63 @@
-# Ai-Agent-2.0
-A modular multi-agent system for creative strategy &amp; production. Bridges social media management and high-end creative execution (design, motion, scripts) using Model Context Protocol (MCP) for tool extensibility and RAG for continuous learning from your past assets.
+# Creative Agent — AI-Agent-2.0
 
-# Creative Agent: Social & Design Intelligence
+A modular creative-strategy and production-assistant project for social media planning, design direction, video scripting, and reusable brand knowledge.
 
-This repository houses the development of a specialized AI agent system designed to bridge the gap between **Social Media Strategy** and **Creative Production** (Design, Motion Graphics, and Video Scripting). 
+## Status
 
-#  Vision
-To build an agentic system that acts as a lead creative strategist, capable of:
-1. **Social Intelligence:** Analyzing live social media pages and trends to generate actionable reports.
-2. **Creative Execution:** Applying high-level design theory to video scripts and motion graphics direction.
-3. **Continuous Growth:** Evolving through a modular "skills" architecture that allows for tool integration.
+**Milestone 1: deterministic Python creative-brief planner (implemented).**
 
-#  Architecture
-We are utilizing a **Multi-Agent Supervisor Pattern** supported by two critical technical pillars:
+This milestone provides a working, dependency-free baseline for turning a structured brief into a proposed creative plan. It does **not** call an AI model, scrape social media, publish content, or claim to provide live trend analysis. The multi-agent supervisor, MCP tools, retrieval-augmented memory, and design/video integrations below remain **planned**.
 
-- **Model Context Protocol (MCP):** We will use frameworks that support MCP (like Mastra or Claude's implementation) to connect the agent to data sources or tools (local design asset folders, Notion, Slack) as if they were native plugins.
-- **Vector Memory (RAG):** Instead of retraining, the agent will utilize a "Library" powered by a Vector Database (like Pinecone or a local store). Every project—including the brief, design files, and final video script—will be saved to this "Memory," allowing the AI to reference your past real-life work for future designs.
-- **Supervisor Agent:** Orchestrates tasks and delegates to specialized sub-agents.
+## Quick start
 
-## 🛠 Tech Stack
-- **Framework:** [LangGraph](https://www.langchain.com/langgraph) - Chosen for its stateful multi-actor support and robust handling of cyclic creative workflows.
-- **Data Schema:** [Pydantic] - To ensure consistent output formatting.
-- **Integration:** [Model Context Protocol (MCP)] - For seamless connectivity to external tools and data sources.
-- **Memory:** [Vector DB (e.g., Pinecone)] - To store past project context and design preferences for retrieval-augmented generation[cite: 1].
+Requires Python 3.11 or newer. No third-party packages are needed.
 
-#  Repository Structure
+```bash
+python -m creative_agent examples/sample_brief.json
+```
+
+It prints JSON containing:
+- The supplied brief and positioning statement
+- A draft creative direction and opening-hook prompt
+- Platform-specific suggested deliverable formats
+- Goal-specific measurement metrics
+- A human review checklist for factual accuracy, rights, accessibility, and approvals
+
+Edit the example JSON to provide your own brand, audience, goal, platform, topic, and optional tone. Supported platforms: `instagram`, `linkedin`, `tiktok`, `x`, and `youtube`. Goals: `awareness`, `engagement`, `conversion`, and `education`.
+
+## Quality checks
+
+```bash
+python -m compileall -q creative_agent tests
+python -m unittest discover -s tests -v
+```
+
+GitHub Actions runs these checks on pushes, pull requests, once daily (06:17 UTC, best effort), and manually. The workflow also runs the sample CLI on Python 3.11, 3.12, and 3.13. Scheduled workflow runs only execute from GitHub's default branch after merge.
+
+## Project structure
+
 ```text
-/agents          # Definitions for specific specialized agents
-/tools           # Python scripts/plugins (Social parser, Design theory evaluator, etc.)
-/knowledge       # Vector database/Markdown library for 'Golden Standard' creative assets
-/prompts         # System instructions and prompt templates
-/docs            # Design theory guidelines and project requirements
-main.py          # Orchestration logic
+creative_agent/
+  __init__.py      # Public API
+  planner.py       # Brief validation and deterministic planning
+  __main__.py      # JSON-to-JSON command-line interface
+examples/
+  sample_brief.json
+tests/
+  test_planner.py
+.github/workflows/
+  quality.yml
+```
 
+## Roadmap
+
+1. **Milestone 1:** validate briefs, suggest formats and review criteria; CLI, tests, automated quality checks.
+2. **Milestone 2:** dedicated copy, design, and video-script modules with defined contracts and human approval steps.
+3. **Milestone 3:** optional model-provider adapters with safe secret handling, evaluation datasets, and cost limits.
+4. **Milestone 4:** opt-in MCP integrations, RAG asset library, and supervised multi-agent execution.
+
+## Design principles
+
+Human-in-the-loop creative review; no automatic publishing; verifiable claims; explicit permission for brand assets; tests before releases; and no credentials committed to source control.
+
+Maintainer: [JoCoded](https://github.com/JoCoded)
