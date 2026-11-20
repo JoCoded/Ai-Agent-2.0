@@ -1,0 +1,17 @@
+[
+  {
+    "name": "instagram-education",
+    "brief": {"brand": "Example Studio", "audience": "early-career designers", "goal": "education", "platform": "instagram", "topic": "portfolio development"},
+    "modules": ["strategy", "copywriting", "video_script"]
+  },
+  {
+    "name": "linkedin-awareness",
+    "brief": {"brand": "Engineering Lab", "audience": "engineering graduates", "goal": "awareness", "platform": "linkedin", "topic": "robotics prototypes"},
+    "modules": ["strategy", "copywriting", "video_script"]
+  },
+  {
+    "name": "youtube-engagement",
+    "brief": {"brand": "Learning Channel", "audience": "students", "goal": "engagement", "platform": "youtube", "topic": "battery health"},
+    "modules": ["strategy", "copywriting", "video_script"]
+  }
+]
