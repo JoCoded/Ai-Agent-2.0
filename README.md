@@ -4,9 +4,9 @@ A modular creative-strategy and production-assistant project for social media pl
 
 ## Status
 
-**Milestones 1–3 implemented:** deterministic planner, review-gated creative pipeline, and an opt-in OpenAI Chat Completions JSON-generation adapter with offline contract evaluation.
+**Milestones 1–4 implemented:** deterministic planner, review-gated creative pipeline, opt-in OpenAI provider, and offline brand-knowledge retrieval with supervised coordination.
 
-The current implementation provides dependency-free, editable creative strategy, copywriting scaffolds, and video-storyboard templates. It does **not** call an AI model, research factual claims, scrape social media, or publish content. Human review decisions are recorded, but even an approved result cannot auto-publish. An optional provider adapter is available for configured live calls; no live model call is made in CI. MCP tools, RAG and autonomous supervision remain planned.
+The current implementation provides dependency-free, editable creative strategy, copywriting scaffolds, and video-storyboard templates. It does **not** call an AI model, research factual claims, scrape social media, or publish content. Human review decisions are recorded, but even an approved result cannot auto-publish. An optional provider adapter is available for configured live calls; no live model call is made in CI. Milestone 4 adds a local keyword retrieval prototype, a supervisor that composes specialist modules, and a read-only tool adapter interface. There is **no live MCP client or server connection**, vector embedding database, or autonomous remote tool execution; these remain potential later integrations.
 
 ## Quick start
 
@@ -52,6 +52,22 @@ Security and reliability measures:
 
 The evaluation fixtures check structural contracts and review-state invariants offline, **not factual accuracy or model creative quality**. Live-model evaluations should be introduced later with opt-in keys, budgets, and human review.
 
+## Milestone 4: approved assets and supervised coordination
+
+Run the completely local demonstration (no API key or internet required):
+
+```bash
+python -m examples.supervisor_demo
+```
+
+The `KnowledgeStore.from_json(path)` API loads bounded local JSON asset records. Each record has `id`, `brand`, `title`, `text`, `source`, and **explicit boolean** `approved`. Only approved assets for the **exact matching brand** are retrievable. Retrieval uses transparent keyword overlap, with limited snippets and source IDs for tracing; this is a **lexical retrieval prototype**, not vector/semantic RAG and not fact verification.
+
+The `coordinate(brief, store=store)` supervisor runs local planning and retrieval, records the proposed specialist workflow and required human review, and always keeps `publishable = false`. An optional `generator(brief, module, references)` callback can be injected by a developer to generate the three specialist outputs using retrieved references. That callback must enforce its own authentication, costs, networking and privacy policies. Retrieved text is **untrusted data**, not instructions, and humans must review claims and provenance before use. The existing OpenAI provider adapter is **not automatically linked** to this callback.
+
+`ReadOnlyGateway` provides an **opt-in integration interface**, not an implementation of the Model Context Protocol. It denies calls without an explicit consent flag and only invokes explicitly registered `read_` tools. Register **trusted** read-only functions only: tool names and consent checks cannot prove that a callable has no side effects. No MCP credentials, remote servers, or publishing tools are configured.
+
+The fictional demo assets are not real brand materials. Never commit proprietary client assets, private customer data or credentials; use secure local storage and permission checks before real deployments.
+
 ## Quality checks
 
 ```bash
@@ -71,14 +87,20 @@ creative_agent/
   __main__.py      # JSON-to-JSON command-line interface
   pipeline.py      # Strategy, copy, video and review gates
   ai_provider.py   # Opt-in JSON LLM adapter, usage and cost estimates
+  knowledge.py     # Approved, brand-scoped keyword retrieval
+  supervisor.py    # Orchestration and human review handoff
+  integrations.py  # Opt-in trusted read-only tool interface
 examples/
   sample_brief.json
   campaign_demo.py
+  supervisor_demo.py
+  knowledge_demo.json
 tests/
   test_planner.py
   test_pipeline.py
   test_ai_provider.py
   test_evaluation.py
+  test_milestone4.py
 evaluation/
   fixtures.json
   offline_eval.py
@@ -91,7 +113,7 @@ evaluation/
 1. **Milestone 1:** validate briefs, suggest formats and review criteria; CLI, tests, automated quality checks.
 2. **Milestone 2:** content strategy, copywriting and video-script modules with defined contracts and human approval records (**implemented as deterministic scaffolds**).
 3. **Milestone 3:** optional JSON model-provider adapter, tests with fake transport, offline contract fixtures, and preflight estimated per-request cost cap (**implemented**).
-4. **Milestone 4:** opt-in MCP integrations, RAG asset library, and supervised multi-agent execution.
+4. **Milestone 4:** local approved-asset retrieval, supervised specialist coordination and trusted read-only integration contract (**implemented as offline prototypes**; live MCP, vector RAG, and autonomous agents are not implemented).
 
 ## Design principles
 
