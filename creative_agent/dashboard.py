@@ -8,6 +8,7 @@ import json
 import os
 import re
 import tempfile
+from threading import RLock
 from urllib.parse import urlsplit
 
 from .knowledge import Asset, KnowledgeStore
@@ -26,6 +27,7 @@ SAFE_ID = re.compile(r"^[a-zA-Z0-9_-]{1,48}$")
 class DashboardService:
     def __init__(self, asset_path: Path, history_path: Path | None = None):
         self.asset_path = Path(asset_path)
+        self._asset_lock = RLock()
         self.history = HistoryStore(history_path or self.asset_path.with_name("drafts.json"))
 
     def load(self):
@@ -70,22 +72,24 @@ class DashboardService:
             title=payload.get("title"), text=payload.get("text"),
             source=payload.get("source"), approved=False,
         )
-        records = self.load()
-        records.append(vars(asset))
-        self.save(records)
+        with self._asset_lock:
+            records = self.load()
+            records.append(vars(asset))
+            self.save(records)
         return vars(asset)
 
     def review_asset(self, payload):
         if not isinstance(payload, dict) or type(payload.get("approve")) is not bool:
             raise ValueError("review requires asset id and explicit boolean approve")
         identifier = payload.get("id")
-        records = self.load()
-        for row in records:
-            if row["id"] == identifier:
-                row["approved"] = payload["approve"]
-                self.save(records)
-                return row
-        raise ValueError("asset not found")
+        with self._asset_lock:
+            records = self.load()
+            for row in records:
+                if row["id"] == identifier:
+                    row["approved"] = payload["approve"]
+                    self.save(records)
+                    return row
+            raise ValueError("asset not found")
 
     def plan(self, payload):
         if not isinstance(payload, dict):
@@ -232,7 +236,7 @@ def make_handler(service):
             except GenerationError:
                 self._json(400, {"error": "AI generation failed or is disabled. Check local configuration, budget and model."})
                 return
-            except (ValueError, TypeError, KeyError, UnicodeDecodeError, OSError):
+            except (ValueError, TypeError, KeyError, UnicodeDecodeError, OSError, OverflowError):
                 self._json(400, {"error": "Invalid or incomplete input"})
                 return
             self._json(200, result)
