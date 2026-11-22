@@ -4,7 +4,7 @@ A modular creative-strategy and production-assistant project for social media pl
 
 ## Status
 
-**Milestones 1–6 implemented:** deterministic planner, review-gated pipeline, optional OpenAI provider, approved-asset retrieval, supervisor, and a local browser dashboard.
+**Milestones 1–6 implemented, with Milestone 7 hardening:** deterministic planner, review-gated pipeline, optional OpenAI provider, approved-asset retrieval, supervisor, and a local browser dashboard.
 
 The current implementation provides dependency-free, editable creative strategy, copywriting scaffolds, and video-storyboard templates. It does **not** call an AI model, research factual claims, scrape social media, or publish content. Human review decisions are recorded, but even an approved result cannot auto-publish. An optional provider adapter is available for configured live calls; no live model call is made in CI. Milestone 4 adds a local keyword retrieval prototype, a supervisor that composes specialist modules, and a read-only tool adapter interface. There is **no live MCP client or server connection**, vector embedding database, or autonomous remote tool execution; these remain potential later integrations.
 
@@ -104,6 +104,14 @@ The dashboard is still restricted to `127.0.0.1`. It now also validates the exac
 
 **Testing:** Unit and HTTP tests run without live API keys or charges. There is no end-to-end paid-model evaluation in CI and no guarantee of artistic quality.
 
+## Milestone 7: prototype reliability and release readiness
+
+The local dashboard now serializes asset and draft modifications within a running process to reduce lost-update races during concurrent HTTP requests. Reviewer decisions for the same draft cannot both succeed under concurrent requests in one process. Added realistic HTTP and concurrency regression tests across the existing Python matrix.
+
+For review gates and an explicit list of **unverified** manual browser, accessibility, live-provider and deployment checks, see [Local release readiness checklist](docs/RELEASE_CHECKLIST.md).
+
+**Important limitations:** Single-process thread locks do not coordinate multiple running dashboard instances or external file editors. Run one local process per data directory. Local JSON files are not encrypted, and no browser visual audit or live paid-provider run has been completed here. Passing CI is not a claim that the app is ready for public internet deployment.
+
 ## Quality checks
 
 ```bash
@@ -141,6 +149,7 @@ tests/
   test_milestone4.py
   test_dashboard.py
   test_history_ai_dashboard.py
+  test_production_readiness.py
 evaluation/
   fixtures.json
   offline_eval.py
@@ -158,6 +167,7 @@ web/
 4. **Milestone 4:** local approved-asset retrieval, supervised specialist coordination and trusted read-only integration contract (**implemented as offline prototypes**; live MCP, vector RAG, and autonomous agents are not implemented).
 5. **Milestone 5:** responsive local browser dashboard for briefs, drafts, review and reference management (**implemented**).
 6. **Milestone 6:** explicitly opt-in single-module provider calls in the local dashboard, durable draft history, human review records, and additional HTTP security checks (**implemented**, with no paid live-model integration tests).
+7. **Milestone 7:** thread-safe local mutations, full offline HTTP review scenarios, concurrent modification regressions and a manual release checklist (**implemented**; public deployment not approved).
 
 ## Design principles
 
