@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+from threading import RLock
 from uuid import uuid4
 
 
@@ -14,6 +15,7 @@ class HistoryStore:
 
     def __init__(self, path: Path):
         self.path = Path(path)
+        self._lock = RLock()
 
     def list(self) -> list[dict]:
         if not self.path.exists():
@@ -57,9 +59,10 @@ class HistoryStore:
             "campaign": campaign,
             "review": {"state": "needs_review", "reviewer": None, "notes": "", "reviewed_at": None},
         }
-        records = self.list()
-        records.insert(0, row)
-        self._save(records)
+        with self._lock:
+            records = self.list()
+            records.insert(0, row)
+            self._save(records)
         return row
 
     def decide(self, identifier: str, *, reviewer: str, approve: bool, notes: str = "") -> dict:
@@ -71,19 +74,20 @@ class HistoryStore:
             raise ValueError("human reviewer name required")
         if not isinstance(notes, str) or len(notes) > 1000:
             raise ValueError("notes too long")
-        records = self.list()
-        for row in records:
-            if row["id"] == identifier:
-                if row["review"]["state"] != "needs_review":
-                    raise ValueError("draft has already been reviewed")
-                row["review"] = {
-                    "state": "approved" if approve else "changes_requested",
-                    "reviewer": reviewer.strip(),
-                    "notes": notes,
-                    "reviewed_at": datetime.now(timezone.utc).isoformat(),
-                }
-                # Never authorize publishing, regardless of review outcome.
-                row["campaign"]["publishable"] = False
-                self._save(records)
-                return row
-        raise ValueError("draft not found")
+        with self._lock:
+            records = self.list()
+            for row in records:
+                if row["id"] == identifier:
+                    if row["review"]["state"] != "needs_review":
+                        raise ValueError("draft has already been reviewed")
+                    row["review"] = {
+                        "state": "approved" if approve else "changes_requested",
+                        "reviewer": reviewer.strip(),
+                        "notes": notes,
+                        "reviewed_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    # Never authorize publishing, regardless of review outcome.
+                    row["campaign"]["publishable"] = False
+                    self._save(records)
+                    return row
+            raise ValueError("draft not found")
